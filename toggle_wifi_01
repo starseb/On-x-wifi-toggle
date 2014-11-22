@@ -1,0 +1,72 @@
+// variables
+var timeFrom= "8:00";
+var timeTo= "13:00";
+console.log('Started Script');
+var minute= 60000;
+var hour= 3600 * 1000;
+var day= hour * 24;
+var dateFrom = createTimeToday(timeFrom);
+var dateTo = createTimeToday(timeTo);
+//SCHEDULER WIFI ON
+device.scheduler.setTimer({//set scheduler based on prop. time in milliseconds
+    name: "startWifi",
+    time: dateFrom.getTime(),
+    interval: day
+}, toggleWifi);
+//SCHEDULER WIFI OFF
+device.scheduler.setTimer({//set scheduler based on prop. time in milliseconds
+    name: "stopWifi",
+    time: dateTo.getTime(),
+    interval:day
+}, stopWifi);
+//TOGGLE WIFI
+function toggleWifi() {
+    device.scheduler.setTimer({
+        name:"toggleWifi",
+        time: 0,
+        interval: 'hour'
+    }, function() {//check if wifi is off
+           if(!device.network.wifiEnabled) {//if not
+                console.log("Wifi on");
+                device.network.wifiEnabled= true;
+                var ntf= device.notifications.createNotification("Wifi on");
+                ntf.show();
+            }
+            function checkMinute() {
+                if(new Date().getMinutes()===1) {
+                    if(device.network.wifiEnabled) {
+                        device.network.wifiEnabled= false; 
+                        var ntfOff= device.notifications.createNotification("Wifi +1' off");
+                        ntfOff.show();
+                        console.log("Wifi +1' off");
+                    }
+                }
+                else if(new Date().getMinutes()>1) {
+                    device.scheduler.removeTimer("checkMinute");
+                }
+            }
+            device.scheduler.setTimer({
+                name:"checkMinute",
+                time: 0,
+                interval: 60000
+            },checkMinute);
+       }
+    );
+}
+//CALLBACK STOP WIFI
+function stopWifi() {
+    if(device.network.wifiEnabled) {
+        device.network.wifiEnabled= false;        
+    }
+    device.scheduler.removeTimer("startWifi");
+    device.scheduler.removeTimer("toggleWifi");
+    var ntfOff= device.notifications.createNotification("Wifi off");
+    ntfOff.show();
+	console.log("Wifi off");
+}
+// CALLBACK - returns a date and a time
+function createTimeToday(timeString) {
+    var today= new Date().toDateString();//day, month, year
+	return new Date(today + ' ' + timeString);
+}
+console.log('Completed Script');
