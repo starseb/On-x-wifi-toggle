@@ -1,0 +1,82 @@
+console.log('Started Script');
+// variables
+var timeFrom= "8:00:00";
+var timeTo= "23:00:00";
+var second= 1000;
+var minute= 60 * 1000;
+var hour= minute * 60;
+var day= hour * 24;
+var dateFrom= createTimeToday(timeFrom);
+var dateTo= createTimeToday(timeTo);
+console.log('Variables ok');
+//SCHEDULER WIFI ON - daily cheduler starts toffleWifi
+device.scheduler.setTimer({
+    name: "startWifi",
+    time: dateFrom.getTime(),
+    interval: day
+}, toggleWifi);
+
+//SCHEDULER WIFI OFF - daily scheduler 
+device.scheduler.setTimer({
+    name: "stopWifi",
+    time: dateTo.getTime(),//if in the past fires immediately
+    interval: day
+}, stopWifi);
+//TOGGLE WIFI - every hour strats checkMinute
+function toggleWifi() {
+    device.scheduler.setTimer({
+        name:"toggleWifi",
+        time: 0,
+        interval: hour
+    }, function() {
+           var now= new Date();
+           console.log(now.toLocaleTimeString());
+           var autoWifi;
+           //check if wifi is off and time is not 23
+           if(device.network.wifiEnabled===false && now.getHours()<23) {
+                device.network.wifiEnabled= true;
+                console.log("Wifi on");
+                autoWifi= true;
+                var ntfOn= device.notifications.createNotification("Auto wifi on");
+                ntfOn.vibrate= false;
+                ntfOn.soundUrl= '/media/audio/notifications/CetiAlpha.ogg';
+                ntfOn.show();
+            }
+            device.scheduler.setTimer({
+                name:"checkMinute",
+                time: now.getTime() + 60000
+            },checkMinute);
+            function checkMinute() {
+                console.log("+1'");
+                if(device.network.wifiEnabled && autoWifi) {
+                    device.network.wifiEnabled= false; 
+                    console.log("Wifi +1' off");
+                    var ntfWfOff= device.notifications.createNotification("Auto wifi +1' off");
+                    ntfWfOff.vibrate= false;
+                    ntfWfOff.soundUrl= '/media/audio/notifications/Hojus.ogg';
+                    ntfWfOff.show();
+                }
+                //device.scheduler.removeTimer("checkMinute");
+                //console.log('checkMinute removed');
+            }
+       }
+    );
+}
+//CALLBACK STOP WIFI
+function stopWifi() {
+    if(device.network.wifiEnabled) {
+        device.network.wifiEnabled= false;  
+        device.notifications.createNotification("Wifi toggle stop").show();
+        console.log("Wifi toggle stop");
+    }
+    //device.scheduler.removeTimer("startWifi");Abilitato-> il toggle non riparte
+    device.scheduler.removeTimer("toggleWifi");
+    //device.scheduler.removeTimer("checkMinute");
+}
+// CALLBACK returns a new date object from the specified date(today) and time(timeString)
+function createTimeToday(timeString) {
+    var today= new Date().toDateString();//day, month, year
+	return new Date(today + ' ' + timeString);
+}
+
+console.log('Completed Script');
