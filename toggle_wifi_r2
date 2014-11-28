@@ -1,0 +1,58 @@
+console.log('Started Script');
+// variables
+var timeFrom= "8:00:00";
+var timeTo= "23:00:00";
+var minute= 60 * 1000;
+var hour= minute * 60;
+var day= hour * 24;
+var dateFrom= createTimeToday(timeFrom);
+console.log('Variables ok');
+    
+//SCHEDULER WIFI ON - daily cheduler starts toffleWifi
+device.scheduler.setTimer({
+  name: "startWifi",
+  time: dateFrom.getTime(),
+  interval: day
+}, toggleWifi);
+
+//TOGGLE WIFI - every hour strats checkMinute
+function toggleWifi() {
+  device.scheduler.setTimer({
+    name:"toggleWifi",
+    time: 0,
+    interval: hour
+  }, function() {
+    var autoWifi;
+    var now= new Date();
+    if(now.getHours()>=8 && now.getHours()<=23) {
+      console.log(now.toLocaleTimeString());
+      if(device.network.wifiEnabled===false) {
+        device.network.wifiEnabled= true;
+        autoWifi= true;
+        console.log("Wifi on");
+        //SCHEDULER CHECKMINUTE START -  check every minute
+        device.scheduler.setTimer({
+        name:"checkMinute",
+        time: now.getTime() + 60000
+        },function() {
+          console.log("+1'");
+          if(autoWifi) {
+            device.network.wifiEnabled= false;
+            console.log("Wifi +1' off");
+          }
+        }
+        );
+      }
+    }
+    else if(now.getHours()>23 && now.getHours()<8) {
+      console.log("Ora nulla");
+    }
+  }
+  );
+}
+// CALLBACK returns a new date object from the specified date(today) and time(timeString)
+function createTimeToday(timeString) {
+    var today= new Date().toDateString();//day, month, year
+    return new Date(today + ' ' + timeString);
+}
+console.log('Completed Script');
